@@ -1,59 +1,45 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function SearchPage() {
-  const [data, setData] = useState([]) // loaded from CSV
+  const [data, setData] = useState([])
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [suggestions, setSuggestions] = useState([])
-  const [loadMsg, setLoadMsg] = useState('No data loaded. Upload a CSV to begin.')
+  const [loadMsg, setLoadMsg] = useState('Loading sample data...')
 
-  const detectDelimiter = (line) => (line.includes(',') ? ',' : line.includes('\t') ? '\t' : ',')
+  const detectDelimiter = (line) =>
+    line.includes(',') ? ',' : line.includes('\t') ? '\t' : ','
 
   const parseCSV = (text) => {
     const lines = text.trim().split(/\r?\n/).filter(Boolean)
     if (lines.length === 0) return []
-
     const delim = detectDelimiter(lines[0])
     const headers = lines[0].split(delim).map((h) => h.trim())
-
     return lines.slice(1).map((line) => {
       const cols = line.split(delim).map((c) => c.trim())
       const row = {}
       headers.forEach((h, i) => (row[h] = cols[i] ?? ''))
       return {
-        date: row.date || row.Date || '',
-        brand: row.brand || row.Brand || '',
-        item: row.item || row.Item || '',
-        platform: row.platform || row.Platform || '',
-        price:
-          row.price !== undefined
-            ? Number(String(row.price).replace(/[^0-9.-]/g, ''))
-            : row.Price
-            ? Number(String(row.Price).replace(/[^0-9.-]/g, ''))
-            : NaN,
+        date: row.date,
+        brand: row.brand,
+        item: row.item,
+        platform: row.platform,
+        price: Number(row.price),
       }
-    }).filter((r) => r.item && r.platform)
+    })
   }
 
-  const handleFile = (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = () => {
-      try {
-        const rows = parseCSV(String(reader.result || ''))
+  // Auto-load sample.csv from public/
+  useEffect(() => {
+    fetch('/rm_chicken_250829.csv')
+      .then((res) => res.text())
+      .then((text) => {
+        const rows = parseCSV(text)
         setData(rows)
-        setResults([])
-        setSuggestions([])
-        setLoadMsg(`Loaded ${rows.length} rows from ${file.name}.`)
-      } catch (err) {
-        console.error(err)
-        setLoadMsg('Failed to parse CSV. Please check the file format.')
-      }
-    }
-    reader.readAsText(file, 'utf-8')
-  }
+        setLoadMsg(`Loaded ${rows.length} sample rows.`)
+      })
+      .catch(() => setLoadMsg('Failed to load sample data.'))
+  }, [])
 
   const handleSearch = (searchQuery = query) => {
     const q = searchQuery.trim()
@@ -84,21 +70,7 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center p-4">
       <div className="w-full max-w-md space-y-3">
-        {/* CSV Uploader */}
-        <div className="p-3 bg-white rounded-lg shadow">
-          <label className="block text-sm font-medium mb-2">
-            Upload CSV (date, brand, item, platform, price)
-          </label>
-          <input
-            type="file"
-            accept=".csv,text/csv"
-            onChange={handleFile}
-            className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-          />
-          <div className="text-xs text-gray-500 mt-2">{loadMsg}</div>
-        </div>
-
-        {/* Search Box + Suggestions */}
+        <div className="text-sm text-gray-500">{loadMsg}</div>
         <div className="relative">
           <input
             type="text"
@@ -131,7 +103,6 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* Results */}
       <div className="w-full max-w-md mt-6 space-y-2">
         {results.map((row, index) => (
           <div key={index} className="p-3 bg-white rounded-lg shadow">
@@ -150,7 +121,7 @@ export default function SearchPage() {
         )}
         {data.length === 0 && (
           <div className="p-3 bg-white rounded-lg shadow text-gray-500">
-            Upload a CSV to enable search.
+            Sample data not loaded.
           </div>
         )}
       </div>
