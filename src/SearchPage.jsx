@@ -31,7 +31,8 @@ export default function SearchPage() {
 
   // Auto-load sample.csv from public/
   useEffect(() => {
-    fetch('/rm_chicken_250829.csv')
+    //fetch('/rm_chicken_250829.csv')
+    fetch(`${import.meta.env.BASE_URL}rm_chicken_250829.csv`)
       .then((res) => res.text())
       .then((text) => {
         const rows = parseCSV(text)
